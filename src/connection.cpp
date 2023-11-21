@@ -1,22 +1,23 @@
 #include "connection.h"
 #include "rtc_mediaconstraints.h"
+#include "signal.h"
 #include "spdlog/spdlog.h"
+#include <functional>
 
 namespace webrtc {
 
 Connection::Connection(const std::string clientName,
                        std::shared_ptr<ISignalServer> signalServer,
                        scoped_refptr<RTCPeerConnection> pc)
-    : _clientName(clientName), _signalServer(signalServer), _pc(pc){};
+    : _clientName(clientName), _signalServer(signalServer), _pc(pc) {
+  _pc->RegisterRTCPeerConnectionObserver(this);
+};
 
 void Connection::start() { createOffer(); };
 
 void Connection::setAnswer(const std::string type, const std::string sdp) {
   _pc->SetRemoteDescription(
-      sdp, type,
-      [this]() {
-        spdlog::info("SetRemoteDescription success {}", _clientName);
-      },
+      sdp, type, [this]() {},
       [this](const char *error) {
         spdlog::error("SetRemoteDescription error {} {}", error, _clientName);
       });
@@ -24,7 +25,6 @@ void Connection::setAnswer(const std::string type, const std::string sdp) {
 
 void Connection::addCandidate(const std::string candidate,
                               const std::string mid, const int sdpMLineIndex) {
-  spdlog::info("addCandidate {} ", _clientName);
   _pc->AddCandidate(mid, sdpMLineIndex, candidate);
 };
 

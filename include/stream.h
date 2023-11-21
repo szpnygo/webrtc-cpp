@@ -25,6 +25,8 @@ public:
 
   scoped_refptr<RTCMediaStream> getStream() { return _stream; }
 
+  bool isPlaying() { return _is_running && !_should_pause; }
+
 private:
   scoped_refptr<RTCMediaStream> _stream;
   scoped_refptr<RTCVideoCapturer> _capturer;

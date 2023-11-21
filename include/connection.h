@@ -9,6 +9,9 @@
 namespace webrtc {
 using namespace libwebrtc;
 
+typedef std::function<void()> OnConnected;
+typedef std::function<void()> OnDisconnected;
+
 class Connection : public RTCPeerConnectionObserver {
 public:
   Connection(const std::string clientName,
@@ -34,14 +37,32 @@ public:
     _state = state;
     if (state == RTCPeerConnectionStateConnected) {
       spdlog::info("Connection established {}", _clientName);
+      if (_onConnected) {
+        _onConnected();
+      }
     } else if (state == RTCPeerConnectionStateDisconnected) {
       spdlog::info("Connection disconnected {}", _clientName);
+      disconnected();
     } else if (state == RTCPeerConnectionStateFailed) {
       spdlog::info("Connection failed {}", _clientName);
+      disconnected();
     } else if (state == RTCPeerConnectionStateClosed) {
       spdlog::info("Connection closed {}", _clientName);
+      disconnected();
+    } else if (state == RTCPeerConnectionStateNew) {
+      spdlog::info("Connection new {}", _clientName);
+    } else if (state == RTCPeerConnectionStateConnecting) {
+      spdlog::info("Connection connecting {}", _clientName);
     }
   };
+
+  void disconnected() {
+    _pc->DeRegisterRTCPeerConnectionObserver();
+    _pc->Close();
+    if (_onDisconnected) {
+      _onDisconnected();
+    }
+  }
 
   virtual void
   OnIceCandidate(scoped_refptr<RTCIceCandidate> candidate) override {
@@ -73,6 +94,12 @@ public:
 
   virtual void OnRemoveTrack(scoped_refptr<RTCRtpReceiver> receiver) override{};
 
+  void setOnConnected(OnConnected onConnected) { _onConnected = onConnected; }
+
+  void setOnDisconnected(OnDisconnected onDisconnected) {
+    _onDisconnected = onDisconnected;
+  }
+
 private:
   scoped_refptr<RTCPeerConnection> _pc;
   scoped_refptr<RTCPeerConnectionFactory> _peerConnectionFactory;
@@ -82,6 +109,9 @@ private:
   RTCPeerConnectionState _state;
   // the signal server
   std::shared_ptr<ISignalServer> _signalServer;
+
+  OnConnected _onConnected;
+  OnDisconnected _onDisconnected;
 
   // create the offer
   void createOffer();

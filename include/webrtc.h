@@ -65,5 +65,10 @@ private:
 
   // common function to create a peer connection
   scoped_refptr<RTCPeerConnection> createPeerConnection();
+
+  void addConnection(const std::string &name,
+                     std::shared_ptr<Connection> connection);
+
+  void removeConnection(const std::string &name);
 };
 } // namespace webrtc

@@ -86,18 +86,37 @@ scoped_refptr<RTCPeerConnection> WebRTCApp::createPeerConnection() {
     }
   }
 
-  // TODO: when pc is connected, start stream. temp solution:
-  _stream->start();
-
   return pc;
 }
 
 void WebRTCApp::onNewConnectionRequest(const std::string &name) {
-  spdlog::info("onNewConnectionRequest {}", name);
   auto conn =
       std::make_shared<Connection>(name, _signalServer, createPeerConnection());
-  _connections[name] = conn;
+  addConnection(name, conn);
+  conn->setOnConnected([this, name]() {
+    spdlog::info("onConnected {}", name);
+    if (_stream && !_stream->isPlaying()) {
+      _stream->start();
+    }
+  });
+  conn->setOnDisconnected([this, name]() {
+    spdlog::info("onDisconnected {}", name);
+    removeConnection(name);
+  });
   conn->start();
+}
+
+void WebRTCApp::addConnection(const std::string &name,
+                              std::shared_ptr<Connection> connection) {
+  _connections[name] = connection;
+}
+
+void WebRTCApp::removeConnection(const std::string &name) {
+  _connections.erase(name);
+  // if no connection, stop the stream
+  if (_connections.size() == 0 && _stream && _stream->isPlaying()) {
+    _stream->stop();
+  }
 }
 
 } // namespace webrtc
