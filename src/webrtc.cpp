@@ -113,16 +113,18 @@ void WebRTCApp::onNewConnectionRequest(const std::string &name) {
 
 void WebRTCApp::addConnection(const std::string &name,
                               std::shared_ptr<Connection> connection) {
+  if (_connections.find(name) != _connections.end()) {
+    _connections[name]->close();
+    _factory->Delete(connection->getPeerConnection());
+  }
   _connections[name] = connection;
 }
 
 void WebRTCApp::removeConnection(const std::string &name) {
-  // find the connection
-  if (_connections.find(name) == _connections.end()) {
+  if (_connections.find(name) != _connections.end()) {
     _factory->Delete(_connections[name]->getPeerConnection());
   }
   _connections.erase(name);
-  // if no connection, stop the stream
   if (_connections.size() == 0 && _stream && _stream->isPlaying()) {
     _stream->stop();
   }
