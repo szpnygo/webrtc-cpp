@@ -100,6 +100,8 @@ public:
     _onDisconnected = onDisconnected;
   }
 
+  scoped_refptr<RTCPeerConnection> getPeerConnection() { return _pc; }
+
 private:
   scoped_refptr<RTCPeerConnection> _pc;
   scoped_refptr<RTCPeerConnectionFactory> _peerConnectionFactory;

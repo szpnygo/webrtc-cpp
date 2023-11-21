@@ -90,6 +90,11 @@ scoped_refptr<RTCPeerConnection> WebRTCApp::createPeerConnection() {
 }
 
 void WebRTCApp::onNewConnectionRequest(const std::string &name) {
+  // check if the connection already exists
+  if (_connections.find(name) != _connections.end()) {
+    spdlog::info("Connection already exists {}", name);
+    return;
+  }
   auto conn =
       std::make_shared<Connection>(name, _signalServer, createPeerConnection());
   addConnection(name, conn);
@@ -108,17 +113,14 @@ void WebRTCApp::onNewConnectionRequest(const std::string &name) {
 
 void WebRTCApp::addConnection(const std::string &name,
                               std::shared_ptr<Connection> connection) {
-  // check if the connection is already exist
-  if (_connections.find(name) != _connections.end()) {
-    // close the connection
-    _connections[name]->close();
-    // remove the connection
-    _connections.erase(name);
-  }
   _connections[name] = connection;
 }
 
 void WebRTCApp::removeConnection(const std::string &name) {
+  // find the connection
+  if (_connections.find(name) == _connections.end()) {
+    _factory->Delete(_connections[name]->getPeerConnection());
+  }
   _connections.erase(name);
   // if no connection, stop the stream
   if (_connections.size() == 0 && _stream && _stream->isPlaying()) {
