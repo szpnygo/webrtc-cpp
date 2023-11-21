@@ -35,7 +35,6 @@ void Connection::createOffer() {
 
   _pc->CreateOffer(
       [this](const string sdp, const string type) {
-        spdlog::info("CreateOffer success {}", _clientName);
         onCreateOfferSuccess(sdp, type);
       },
       [this](const char *error) {

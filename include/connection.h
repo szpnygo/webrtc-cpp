@@ -42,13 +42,13 @@ public:
       }
     } else if (state == RTCPeerConnectionStateDisconnected) {
       spdlog::info("Connection disconnected {}", _clientName);
-      disconnected();
+      close();
     } else if (state == RTCPeerConnectionStateFailed) {
       spdlog::info("Connection failed {}", _clientName);
-      disconnected();
+      close();
     } else if (state == RTCPeerConnectionStateClosed) {
       spdlog::info("Connection closed {}", _clientName);
-      disconnected();
+      close();
     } else if (state == RTCPeerConnectionStateNew) {
       spdlog::info("Connection new {}", _clientName);
     } else if (state == RTCPeerConnectionStateConnecting) {
@@ -56,7 +56,7 @@ public:
     }
   };
 
-  void disconnected() {
+  void close() {
     _pc->DeRegisterRTCPeerConnectionObserver();
     _pc->Close();
     if (_onDisconnected) {
@@ -104,7 +104,7 @@ private:
   scoped_refptr<RTCPeerConnection> _pc;
   scoped_refptr<RTCPeerConnectionFactory> _peerConnectionFactory;
   // the name of the client who is connected to the server
-  std::string _clientName;
+  std::string _clientName = "";
   // the state of the connection
   RTCPeerConnectionState _state;
   // the signal server

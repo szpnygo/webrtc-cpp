@@ -108,6 +108,13 @@ void WebRTCApp::onNewConnectionRequest(const std::string &name) {
 
 void WebRTCApp::addConnection(const std::string &name,
                               std::shared_ptr<Connection> connection) {
+  // check if the connection is already exist
+  if (_connections.find(name) != _connections.end()) {
+    // close the connection
+    _connections[name]->close();
+    // remove the connection
+    _connections.erase(name);
+  }
   _connections[name] = connection;
 }
 
