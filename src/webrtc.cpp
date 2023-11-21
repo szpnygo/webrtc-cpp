@@ -1,10 +1,11 @@
 #include "webrtc.h"
-#include <corecrt_math.h>
+#include "libwebrtc.h"
 
 namespace webrtc {
 
 WebRTCApp::WebRTCApp(const std::string &name) : _name(name) {
   LibWebRTC::Initialize();
+  _factory = LibWebRTC::CreateRTCPeerConnectionFactory();
 }
 
 WebRTCApp::~WebRTCApp() {}
@@ -15,6 +16,22 @@ void WebRTCApp::setSignalServer(const std::string &url) {
 
 void WebRTCApp::start() {
   _signalServer->onConnectSuccess([this] { signalServerOnConnectSuccess(); });
+  _signalServer->onNewConnectionRequest(
+      [this](const std::string &name) { onNewConnectionRequest(name); });
+  _signalServer->onAnswerMessage(
+      [this](const std::string &name, const AnswerMessage &message) {
+        if (_connections.find(name) != _connections.end()) {
+          _connections[name]->setAnswer(message.type, message.sdp);
+        }
+      });
+  _signalServer->onCandidateMessage(
+      [this](const std::string &name, const CandidateMessage &message) {
+        if (_connections.find(name) != _connections.end()) {
+          _connections[name]->addCandidate(message.candidate, message.mid,
+                                           message.sdpMLineIndex);
+        }
+      });
+
   _signalServer->start();
 
   spdlog::info("WebRTCApp start");
@@ -32,4 +49,55 @@ void WebRTCApp::stop() {
   _isStop = true;
   _cv.notify_all();
 }
+
+scoped_refptr<RTCPeerConnection> WebRTCApp::createPeerConnection() {
+  RTCConfiguration config;
+  config.ice_servers[0] =
+      IceServer{"stun:coturn.tcodestudio.com:31000", "", ""};
+  auto constraints = RTCMediaConstraints::Create();
+  auto pc = _factory->Create(config, constraints);
+
+  auto stream = _stream->getStream();
+
+  auto codecs = _factory->GetRtpSenderCapabilities(RTCMediaType::VIDEO);
+  auto codecsVector = codecs->codecs().std_vector();
+  std::vector<std::string> order = {"video/AV1"};
+  std::stable_sort(codecsVector.begin(), codecsVector.end(),
+                   [&order](const auto &a, const auto &b) {
+                     auto pos_a = std::distance(
+                         order.begin(), std::find(order.begin(), order.end(),
+                                                  a->mime_type().std_string()));
+                     auto pos_b = std::distance(
+                         order.begin(), std::find(order.begin(), order.end(),
+                                                  b->mime_type().std_string()));
+                     return pos_a < pos_b;
+                   });
+
+  std::vector<string> std_vec = {stream->id()};
+  for (const auto &item : stream->video_tracks().std_vector()) {
+    auto sender = pc->AddTrack(item, std_vec);
+    if (sender) {
+      for (const auto &transceiver : pc->transceivers().std_vector()) {
+        if (transceiver->sender()->id().std_string() ==
+            sender->id().std_string()) {
+          transceiver->SetCodecPreferences(codecsVector);
+        }
+      }
+    }
+  }
+
+  // TODO: when pc is connected, start stream. temp solution:
+  _stream->start();
+
+  return pc;
+}
+
+void WebRTCApp::onNewConnectionRequest(const std::string &name) {
+  spdlog::info("onNewConnectionRequest {}", name);
+  auto conn =
+      std::make_shared<Connection>(name, _signalServer, createPeerConnection());
+  _connections[name] = conn;
+  conn->start();
+}
+
 } // namespace webrtc

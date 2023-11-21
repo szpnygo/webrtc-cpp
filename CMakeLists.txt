@@ -12,6 +12,8 @@ include(cmake/spdlog.cmake)
 set(FILES
     src/webrtc.cpp
     src/signal.cpp
+    src/connection.cpp
+    src/stream.cpp
 )
 
 # add library
@@ -24,5 +26,5 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC nlohmann_json::nlohmann_json)
 target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC ixwebsocket)
 
 # add executable
-add_executable(${CMAKE_PROJECT_NAME}_example example/main.cpp)
+add_executable(${CMAKE_PROJECT_NAME}_example example/main.cpp example/video.cpp)
 target_link_libraries(${CMAKE_PROJECT_NAME}_example PUBLIC ${CMAKE_PROJECT_NAME})
