@@ -5,7 +5,6 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <vcruntime_typeinfo.h>
 
 namespace webrtc {
 

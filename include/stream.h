@@ -6,6 +6,7 @@
 #include <memory>
 #include <mutex>
 #include <stdexcept>
+#include <thread>
 
 namespace webrtc {
 
