@@ -38,5 +38,34 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC ${LIBWEBRTC_FILE})
 add_executable(${CMAKE_PROJECT_NAME}_example example/main.cpp example/video.cpp)
 target_link_libraries(${CMAKE_PROJECT_NAME}_example PUBLIC ${CMAKE_PROJECT_NAME})
 
-install(FILES ${LIBWEBRTC_FILE} DESTINATION lib)
-install(DIRECTORY ${libwebrtc_SOURCE_DIR}/include DESTINATION include)
+
+# install library
+install(TARGETS ${CMAKE_PROJECT_NAME}
+        EXPORT webrtcTargets
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        RUNTIME DESTINATION bin
+        INCLUDES DESTINATION include)
+
+# create and install config files
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+    "webrtcConfigVersion.cmake"
+    VERSION 1.0
+    COMPATIBILITY AnyNewerVersion
+)
+
+configure_package_config_file(
+    "${CMAKE_SOURCE_DIR}/cmake/webrtcConfig.cmake.in"
+    "${CMAKE_BINARY_DIR}/webrtcConfig.cmake"
+    INSTALL_DESTINATION lib/cmake/webrtc
+)
+
+install(EXPORT webrtcTargets
+        FILE webrtcTargets.cmake
+        DESTINATION lib/cmake/webrtc)
+
+install(FILES
+    "${CMAKE_BINARY_DIR}/webrtcConfig.cmake"
+    "${CMAKE_BINARY_DIR}/webrtcConfigVersion.cmake"
+    DESTINATION lib/cmake/webrtc)
